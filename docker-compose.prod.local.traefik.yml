@@ -1,0 +1,71 @@
+version: '3.7'
+
+services:
+  web:
+    build:
+      context: ./app
+      dockerfile: Dockerfile.prod
+    command: gunicorn hello_django.wsgi:application --bind 0.0.0.0:8000
+    volumes:
+      - static_volume:/home/app/web/staticfiles
+      - media_volume:/home/app/web/mediafiles
+    expose:
+      - 8000
+    env_file:
+      - ./.env.prod
+    depends_on:
+      - db
+  db:
+    image: postgres:12.0-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    env_file:
+      - ./.env.prod.db
+
+  nginx:
+    build: ./nginx
+    volumes:
+      - static_volume:/home/app/web/staticfiles
+      - media_volume:/home/app/web/mediafiles
+    depends_on:
+      - web
+
+    labels:
+      #  Set your www.hostname.com as Host in production.
+      #- "traefik.http.routers.my-app.rule=Host(`whoami.docker.localhost`)"
+      - "traefik.http.routers.nginx.rule=Host(`127.0.0.1`, `localhost`)"
+
+
+
+
+  traefik:
+    image: "traefik:v2.0.1"
+    command:
+      - --entrypoints.web.address=:80
+      - --providers.docker
+      - --api.insecure
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
+  my-app:
+    image: containous/whoami:v1.3.0
+    command:
+      # It tells whoami to start listening on 8082 instead of 80
+      - --port=8082
+    labels:
+      #  Set your www.hostname.com as Host in production.
+      - "traefik.http.routers.my-app.rule=Host(`whoami.docker.localhost`)"
+      #- "traefik.http.routers.my-app.rule=Host(`127.0.0.1`, `localhost`)"
+      - "traefik.http.services.my-app.loadbalancer.server.port=8082"
+
+
+
+
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:
