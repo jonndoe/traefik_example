@@ -1,4 +1,3 @@
-
 version: "3.3"
 
 services:
@@ -16,11 +15,7 @@ services:
 
   my-app:
     image: containous/whoami:v1.3.0
-    command:
-      # It tells whoami to start listening on 8082 instead of 80
-      - --port=8082
     labels:
-      #  Set your www.hostname.com as Host in production.
-      #- "traefik.http.routers.my-app.rule=Host(`whoami.docker.localhost`)"
-      - "traefik.http.routers.my-app.rule=Host(`127.0.0.1`, `localhost`)"
-      - "traefik.http.services.my-app.loadbalancer.server.port=8082"
+      - "traefik.http.routers.my-app.rule=Host(`whoami.docker.localhost`)"
+      - "traefik.http.routers.my-app.middlewares=auth"
+      - "traefik.http.middlewares.auth.basicauth.users=user:user" # user/password
