@@ -8,7 +8,7 @@ https://docs.traefik.io/user-guides/docker-compose/acme-tls/
 
 https://docs.traefik.io/v2.2/routing/entrypoints/#http-options
 
-
+https://github.com/containous/traefik/issues/706
 
 
 run:
