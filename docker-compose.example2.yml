@@ -1,0 +1,52 @@
+version: "3.3"
+
+services:
+
+  traefik:
+    image: "traefik:v2.2"
+    container_name: "traefik"
+    command:
+      #- "--log.level=DEBUG"
+      - "--api.insecure=true"                       # Traefik will listen on port 8080 by default for API request.
+      - "--providers.docker=true"                   # Enabling docker provider
+      - "--providers.docker.exposedbydefault=false" # Do not expose containers unless explicitly told so
+      - "--entrypoints.web.address=:80"             # Traefik will listen to incoming request on the port 80 (HTTP)
+      - "--providers.file.filename=./traefik_config.yml" # <== Referring to a dynamic configuration file
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
+  whoami:
+    image: "containous/whoami"
+    container_name: "simple-service"
+    labels:
+      - "traefik.enable=true"                                       # Explicitly tell Traefik to expose this container
+      - "traefik.http.routers.router1.rule=Host(`babol.localhost`)" # The domain the service will respond to
+      - "traefik.http.routers.router1.entrypoints=web"              # Allow request only from the predefined entry point named "web"
+      - "traefik.http.routers.router1.rule=Path(`/app1`)"           # this service is available at http://babol.localhost:80/app1
+
+  whoami2:
+    image: "containous/whoami"
+    command:
+      # It tells whoami to start listening on 8082 instead of 80
+      - --port=8082
+    container_name: "simple-service2"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.router2.rule=Host(`whoami2.localhost`)"
+        # this service internally works on http://localhost:8082
+        # but from outside is still available as http://whoami2.localhost
+      - "traefik.http.services.my-app.loadbalancer.server.port=8082"
+      - "traefik.http.routers.router2.entrypoints=web"
+      - "traefik.http.routers.router1.rule=Path(`/service2`)"  # this service is at http://whoami2.localhost:80/service2
+
+
+  whoami3:
+    image: "containous/whoami"
+    container_name: "simple-service3"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.router3.rule=Host(`whoami3.localhost`)"
+      - "traefik.http.routers.router3.entrypoints=web"
